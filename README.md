@@ -1,6 +1,6 @@
 # YojanaConnect
 
-A Government Welfare Scheme Eligibility & Application Tracking System — built for BCSE307L Database Systems.
+A Government Welfare Scheme Eligibility & Application Tracking System 
 
 ## Tech Stack
 - Backend: Django (Python)
