@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}YojanaConnect{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #1f2a24; --paper: #f4efe4; --paper-raised: #fbf8f0;
+            --rule: #c9bfa4; --saffron: #c8641f; --deep-green: #22543d;
+            --navy: #1c2f4a; --stamp-red: #8c2f1f;
+        }
+        body {
+            background-color: var(--paper);
+            background-image: linear-gradient(var(--rule) 1px, transparent 1px);
+            background-size: 100% 2.1rem;
+            font-family: 'Source Sans 3', sans-serif;
+            color: var(--ink);
+        }
+        h1, h2, h3, h4, h5, .navbar-brand { font-family: 'Lora', serif; }
+        .site-header {
+            background: var(--paper-raised);
+            border-bottom: 3px double var(--navy);
+            padding: 0.9rem 0;
+        }
+        .site-header .navbar-brand {
+            font-weight: 700; font-size: 1.5rem; color: var(--navy) !important;
+        }
+        .site-header .navbar-brand::before { content: "⚖ "; color: var(--saffron); }
+        .role-tag {
+            font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+            border: 1px solid var(--navy); color: var(--navy); padding: 0.15rem 0.5rem; border-radius: 2px;
+        }
+        .btn-outline-nav { border: 1px solid var(--navy); color: var(--navy); background: transparent; font-size: 0.85rem; }
+        .btn-outline-nav:hover { background: var(--navy); color: var(--paper-raised); }
+        .card { background: var(--paper-raised); border: 1px solid var(--rule); border-radius: 2px;
+                box-shadow: 3px 3px 0 rgba(28, 47, 74, 0.06); }
+        .btn { border-radius: 2px; font-weight: 600; }
+        .btn-primary { background: var(--navy); border-color: var(--navy); }
+        .btn-success { background: var(--deep-green); border-color: var(--deep-green); }
+        input[type=text], input[type=password], input[type=number], input[type=email],
+        input[type=url], textarea, select {
+            width: 100%; padding: 0.5rem 0.7rem; border: 1px solid var(--rule);
+            border-radius: 2px; font-size: 1rem; background: #fff;
+        }
+    </style>
+</head>
+<body>
+<header class="site-header">
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="/">YojanaConnect</a>
+            {% if user.is_authenticated %}
+            <div class="d-flex align-items-center gap-2">
+                <span class="mx-2">{{ user.username }} <span class="role-tag">{{ user.role }}</span></span>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+</header>
+
+<div class="container mt-4">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
