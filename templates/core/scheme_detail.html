@@ -1,0 +1,50 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ scheme.name }}{% endblock %}
+{% block content %}
+<div class="card p-4 shadow-sm">
+    <h3>{{ scheme.name }}</h3>
+    <span class="badge bg-light text-dark mb-3">{{ scheme.get_category_display }} &middot; {{ scheme.state_applicable }}</span>
+    <p>{{ scheme.description }}</p>
+
+    <h6>Eligibility Criteria</h6>
+    <ul>
+        {% for c in scheme.criteria.all %}
+            <li>
+                {% if c.min_income %}Min income: ₹{{ c.min_income }} {% endif %}
+                {% if c.max_income %}| Max income: ₹{{ c.max_income }} {% endif %}
+                {% if c.min_age %}| Min age: {{ c.min_age }} {% endif %}
+                {% if c.max_age %}| Max age: {{ c.max_age }} {% endif %}
+                {% if c.category_required %}| Category: {{ c.get_category_required_display }}{% endif %}
+            </li>
+        {% empty %}
+            <li class="text-muted">No specific restrictions.</li>
+        {% endfor %}
+    </ul>
+
+    {% if scheme.official_reference_url %}
+        <p><a href="{{ scheme.official_reference_url }}" target="_blank">Official Government Reference &rarr;</a></p>
+    {% endif %}
+
+    {% if user.is_citizen %}
+        <hr>
+        {% if is_eligible %}
+            <div class="alert alert-success">You are eligible for this scheme based on your profile.</div>
+            {% if already_applied %}
+                <button class="btn btn-secondary" disabled>Already Applied</button>
+            {% else %}
+                <form method="post" action="{% url 'apply_to_scheme' scheme.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success">Apply Now</button>
+                </form>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-warning">
+                Based on your profile, you don't currently meet this scheme's eligibility criteria:
+                <ul class="mb-0 mt-2">
+                    {% for reason in gap_reasons %}<li>{{ reason }}</li>{% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

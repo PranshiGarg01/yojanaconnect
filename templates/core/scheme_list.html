@@ -1,0 +1,49 @@
+{% extends 'core/base.html' %}
+{% block title %}Browse Schemes{% endblock %}
+{% block content %}
+<h3 class="mb-3">Browse Government Schemes</h3>
+
+<form method="get" class="row g-2 mb-4">
+    <div class="col-md-6">
+        <input type="text" name="q" placeholder="Search by scheme name..." value="{{ query }}">
+    </div>
+    <div class="col-md-4">
+        <select name="category">
+            <option value="">All Categories</option>
+            {% for value, label in categories %}
+                <option value="{{ value }}" {% if category == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary w-100" type="submit">Filter</button>
+    </div>
+</form>
+
+<div class="row">
+    {% for scheme in page_obj %}
+    <div class="col-md-4 mb-3">
+        <div class="card p-3 shadow-sm h-100">
+            <h5>{{ scheme.name }}</h5>
+            <span class="badge bg-light text-dark mb-2">{{ scheme.get_category_display }}</span>
+            <p class="text-muted small">{{ scheme.description|truncatewords:15 }}</p>
+            <a href="{% url 'scheme_detail' scheme.pk %}" class="btn btn-outline-primary btn-sm mt-auto">View Details</a>
+        </div>
+    </div>
+    {% empty %}
+        <p class="text-muted">No schemes match your search.</p>
+    {% endfor %}
+</div>
+
+<nav>
+    <ul class="pagination">
+        {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query }}&category={{ category }}">Previous</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query }}&category={{ category }}">Next</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endblock %}
