@@ -58,3 +58,86 @@ def dashboard(request):
             )
             eligible = cursor.fetchall()
         return render(request, 'core/dashboard_citizen.html', {'eligible_schemes': eligible})
+
+
+
+from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404
+from django.db import transaction
+from .models import Scheme, Application
+
+
+def call_explain_eligibility_gap(citizen_id, scheme_id):
+    """Calls the second stored procedure. Postgres TEXT[] arrays come back as Python lists."""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT explain_eligibility_gap(%s, %s)", [citizen_id, scheme_id])
+            return cursor.fetchone()[0] or []
+    except DatabaseError:
+        return []
+
+
+@login_required
+def scheme_list(request):
+    """Search + filter + pagination."""
+    schemes = Scheme.objects.filter(is_active=True)
+    query = request.GET.get('q', '').strip()
+    category = request.GET.get('category', '').strip()
+
+    if query:
+        schemes = schemes.filter(name__icontains=query)
+    if category:
+        schemes = schemes.filter(category=category)
+
+    paginator = Paginator(schemes.order_by('name'), 6)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'core/scheme_list.html', {
+        'page_obj': page_obj, 'query': query, 'category': category,
+        'categories': Scheme.CATEGORY_CHOICES,
+    })
+
+
+@login_required
+def scheme_detail(request, pk):
+    scheme = get_object_or_404(Scheme, pk=pk)
+    is_eligible = None
+    already_applied = False
+    gap_reasons = []
+    if request.user.is_citizen():
+        is_eligible = call_check_eligibility(request.user.id, scheme.id)
+        if is_eligible is None:
+            messages.warning(request, "Couldn't verify eligibility right now — please try again shortly.")
+        elif not is_eligible:
+            gap_reasons = call_explain_eligibility_gap(request.user.id, scheme.id)
+        already_applied = Application.objects.filter(citizen=request.user, scheme=scheme).exists()
+    return render(request, 'core/scheme_detail.html', {
+        'scheme': scheme, 'is_eligible': is_eligible, 'already_applied': already_applied,
+        'gap_reasons': gap_reasons,
+    })
+
+
+@login_required
+def apply_to_scheme(request, pk):
+    """TRANSACTION: eligibility re-check + application creation happen atomically."""
+    scheme = get_object_or_404(Scheme, pk=pk)
+    if not request.user.is_citizen():
+        messages.error(request, "Only citizens can apply to schemes.")
+        return redirect('dashboard')
+
+    if Application.objects.filter(citizen=request.user, scheme=scheme).exists():
+        messages.warning(request, "You've already applied to this scheme.")
+        return redirect('scheme_detail', pk=pk)
+
+    with transaction.atomic():
+        eligible = call_check_eligibility(request.user.id, scheme.id)
+        if eligible is None:
+            messages.error(request, "Couldn't verify eligibility due to a system error — please try again.")
+            return redirect('scheme_detail', pk=pk)
+        if not eligible:
+            messages.error(request, "You are not eligible for this scheme based on your profile.")
+            return redirect('scheme_detail', pk=pk)
+        Application.objects.create(citizen=request.user, scheme=scheme, status='pending')
+
+    messages.success(request, f"Application submitted for {scheme.name}.")
+    return redirect('dashboard')
