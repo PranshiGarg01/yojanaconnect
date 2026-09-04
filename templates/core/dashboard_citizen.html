@@ -1,0 +1,20 @@
+{% extends 'core/base.html' %}
+{% block title %}My Dashboard{% endblock %}
+{% block content %}
+<h3 class="mb-4">Welcome, {{ user.username }}</h3>
+<div class="card p-3 shadow-sm">
+    <h5>Schemes You're Eligible For <span class="badge bg-success">{{ eligible_schemes|length }}</span></h5>
+    <p class="text-muted small">Computed live from the eligible_schemes_view database view.</p>
+    {% if eligible_schemes %}
+        <ul class="list-group">
+            {% for scheme_id, name, category in eligible_schemes %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ name }} <span class="badge bg-light text-dark">{{ category }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted">No matches yet based on your profile.</p>
+    {% endif %}
+</div>
+{% endblock %}
