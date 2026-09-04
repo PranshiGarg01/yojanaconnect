@@ -56,6 +56,10 @@
             {% if user.is_authenticated %}
             <div class="d-flex align-items-center gap-2">
                 <span class="mx-2">{{ user.username }} <span class="role-tag">{{ user.role }}</span></span>
+                <form method="post" action="{% url 'logout' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button class="btn btn-outline-nav btn-sm">Logout</button>
+                </form>
             </div>
             {% endif %}
         </div>
