@@ -254,3 +254,32 @@ def review_application(request, pk):
         'application': application, 'form': form, 'history': history,
         'documents': application.documents.all(),
     })
+
+@officer_required
+def scheme_analytics(request):
+    """
+    Officer analytics dashboard — powered entirely by scheme_analytics_view.
+    Also computes a state-wise applicant breakdown via a second aggregate
+    query, joining Application -> CitizenProfile.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT scheme_name, scheme_category, total_applications,
+                   approved_count, rejected_count, pending_count
+            FROM scheme_analytics_view
+        """)
+        columns = [col[0] for col in cursor.description]
+        scheme_rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+        cursor.execute("""
+            SELECT cp.state, COUNT(a.id) AS application_count
+            FROM core_application a
+            JOIN core_citizenprofile cp ON cp.user_id = a.citizen_id
+            GROUP BY cp.state
+            ORDER BY application_count DESC
+        """)
+        state_rows = cursor.fetchall()
+
+    return render(request, 'core/scheme_analytics.html', {
+        'scheme_rows': scheme_rows, 'state_rows': state_rows,
+    })
