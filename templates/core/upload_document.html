@@ -1,0 +1,41 @@
+{% extends 'core/base.html' %}
+{% block title %}Upload Documents{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card p-4 shadow-sm mb-3">
+            <h4>Upload Supporting Documents</h4>
+            <p class="text-muted">For your application to <strong>{{ application.scheme.name }}</strong>.
+                At least one document is required before an officer can approve.</p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field.errors }}
+                        {{ field }}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary w-100">Upload</button>
+            </form>
+        </div>
+
+        <div class="card p-3 shadow-sm">
+            <h5>Uploaded So Far</h5>
+            {% if documents %}
+                <ul class="list-group">
+                    {% for doc in documents %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ doc.get_document_type_display }}
+                            <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">View</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted mb-0">No documents uploaded yet.</p>
+            {% endif %}
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-primary w-100 mt-3">Done — Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}
