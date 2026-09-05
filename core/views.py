@@ -5,8 +5,12 @@ from django.db import connection, DatabaseError
 from django.shortcuts import render, redirect
 from django.contrib import messages
 
+from .forms import SchemeForm, EligibilityCriteriaForm, ApplicationReviewForm
+from .models import EligibilityCriteria
 from .forms import CitizenSignUpForm
 
+from .forms import DocumentUploadForm
+from .models import Document
 
 def officer_required(view_func):
     """Role-based page access — a citizen hitting an officer URL gets redirected, not shown officer data."""
@@ -139,11 +143,30 @@ def apply_to_scheme(request, pk):
             return redirect('scheme_detail', pk=pk)
         Application.objects.create(citizen=request.user, scheme=scheme, status='pending')
 
-    messages.success(request, f"Application submitted for {scheme.name}.")
-    return redirect('dashboard')
+    messages.success(request, f"Application submitted for {scheme.name}. Please upload supporting documents next.")
+    application = Application.objects.get(citizen=request.user, scheme=scheme)
+    return redirect('upload_document', application_id=application.id)
 
-from .forms import SchemeForm, EligibilityCriteriaForm, ApplicationReviewForm
-from .models import EligibilityCriteria
+@login_required
+def upload_document(request, application_id):
+    """Citizen uploads proof documents against their own application."""
+    application = get_object_or_404(Application, pk=application_id, citizen=request.user)
+
+    if request.method == 'POST':
+        form = DocumentUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            doc = form.save(commit=False)
+            doc.application = application
+            doc.save()
+            messages.success(request, f"{doc.get_document_type_display()} uploaded.")
+            return redirect('upload_document', application_id=application.id)
+    else:
+        form = DocumentUploadForm()
+
+    documents = application.documents.all()
+    return render(request, 'core/upload_document.html', {
+        'application': application, 'form': form, 'documents': documents,
+    })
 
 
 @officer_required
