@@ -141,3 +141,93 @@ def apply_to_scheme(request, pk):
 
     messages.success(request, f"Application submitted for {scheme.name}.")
     return redirect('dashboard')
+
+from .forms import SchemeForm, EligibilityCriteriaForm, ApplicationReviewForm
+from .models import EligibilityCriteria
+
+
+@officer_required
+def manage_schemes(request):
+    if request.method == 'POST':
+        form = SchemeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Scheme created.")
+            return redirect('manage_schemes')
+    else:
+        form = SchemeForm()
+    schemes = Scheme.objects.all().order_by('name')
+    return render(request, 'core/manage_schemes.html', {'form': form, 'schemes': schemes})
+
+
+@officer_required
+def add_criteria(request, scheme_id):
+    scheme = get_object_or_404(Scheme, pk=scheme_id)
+    if request.method == 'POST':
+        form = EligibilityCriteriaForm(request.POST)
+        if form.is_valid():
+            criteria = form.save(commit=False)
+            criteria.scheme = scheme
+            criteria.save()
+            messages.success(request, "Criteria added.")
+            return redirect('manage_schemes')
+    else:
+        form = EligibilityCriteriaForm()
+    return render(request, 'core/add_criteria.html', {'form': form, 'scheme': scheme})
+
+
+@officer_required
+def application_list(request):
+    applications = Application.objects.select_related('citizen', 'scheme').all()
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        applications = applications.filter(status=status_filter)
+
+    paginator = Paginator(applications.order_by('-submitted_at'), 8)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'core/application_list.html', {
+        'page_obj': page_obj, 'status_filter': status_filter,
+    })
+
+
+@officer_required
+def review_application(request, pk):
+    """
+    Approve / Reject / Rollback. We SET LOCAL two Postgres session variables
+    before saving, so the AFTER UPDATE trigger (built Day 3) can record WHO
+    made the change and WHY. Status update + audit log write happen in one
+    transaction — both succeed together, or neither does.
+    """
+    application = get_object_or_404(Application, pk=pk)
+
+    if request.method == 'POST':
+        form = ApplicationReviewForm(request.POST)
+        if form.is_valid():
+            new_status = form.cleaned_data['action']
+            reason = form.cleaned_data['reason']
+
+            # Business rule: an application can't be approved with zero
+            # supporting documents. Rejection/rollback is still allowed.
+            if new_status == 'approved' and application.documents.count() == 0:
+                messages.error(request, "Cannot approve — no supporting documents uploaded yet.")
+                return redirect('review_application', pk=pk)
+
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute("SET LOCAL app.current_user_id = %s", [str(request.user.id)])
+                    cursor.execute("SET LOCAL app.reason = %s", [reason])
+                application.status = new_status
+                application.reviewed_by = request.user
+                application.save()  # fires the trigger -> StatusLog row
+
+            messages.success(request, f"Application marked as {new_status}.")
+            return redirect('application_list')
+    else:
+        form = ApplicationReviewForm()
+
+    history = application.status_logs.all()
+    return render(request, 'core/review_application.html', {
+        'application': application, 'form': form, 'history': history,
+        'documents': application.documents.all(),
+    })
