@@ -1,0 +1,22 @@
+{% extends 'core/base.html' %}
+{% block title %}Add Criteria{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card p-4 shadow-sm">
+            <h4>Add Eligibility Criteria — {{ scheme.name }}</h4>
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field.errors }}
+                        {{ field }}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary w-100">Add Criteria</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

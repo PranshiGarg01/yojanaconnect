@@ -1,0 +1,38 @@
+{% extends 'core/base.html' %}
+{% block title %}Manage Schemes{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-5">
+        <div class="card p-3 shadow-sm">
+            <h5>Add New Scheme</h5>
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-2">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field.errors }}
+                        {{ field }}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary w-100 mt-2">Create Scheme</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <h5>Existing Schemes</h5>
+        <table class="table table-sm bg-white shadow-sm">
+            <thead><tr><th>Name</th><th>Category</th><th>Active</th><th></th></tr></thead>
+            <tbody>
+            {% for scheme in schemes %}
+                <tr>
+                    <td>{{ scheme.name }}</td>
+                    <td>{{ scheme.get_category_display }}</td>
+                    <td>{% if scheme.is_active %}Yes{% else %}No{% endif %}</td>
+                    <td><a href="{% url 'add_criteria' scheme.pk %}" class="btn btn-sm btn-outline-secondary">+ Criteria</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
