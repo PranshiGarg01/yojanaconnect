@@ -53,8 +53,15 @@
     <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand" href="/">YojanaConnect</a>
+
             {% if user.is_authenticated %}
             <div class="d-flex align-items-center gap-2">
+                {% if user.is_citizen %}
+                    <a class="btn btn-outline-nav btn-sm" href="{% url 'scheme_list' %}">Browse Schemes</a>
+                {% else %}
+                    <a class="btn btn-outline-nav btn-sm" href="{% url 'manage_schemes' %}">Manage Schemes</a>
+                    <a class="btn btn-outline-nav btn-sm" href="{% url 'application_list' %}">Applications</a>
+                {% endif %}
                 <span class="mx-2">{{ user.username }} <span class="role-tag">{{ user.role }}</span></span>
                 <form method="post" action="{% url 'logout' %}" class="d-inline">
                     {% csrf_token %}
@@ -62,6 +69,7 @@
                 </form>
             </div>
             {% endif %}
+
         </div>
     </nav>
 </header>
