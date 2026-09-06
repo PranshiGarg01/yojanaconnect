@@ -1,0 +1,39 @@
+{% extends 'core/base.html' %}
+{% block title %}Scheme Analytics{% endblock %}
+{% block content %}
+<h3 class="mb-3">Scheme Analytics</h3>
+<p class="text-muted">Powered by <code>scheme_analytics_view</code> — a SQL view using GROUP BY + FILTER aggregates.</p>
+
+<div class="card p-3 shadow-sm mb-4">
+    <h5>Applications by Scheme</h5>
+    <table class="table table-sm">
+        <thead><tr><th>Scheme</th><th>Category</th><th>Total</th><th>Approved</th><th>Rejected</th><th>Pending</th></tr></thead>
+        <tbody>
+        {% for row in scheme_rows %}
+            <tr>
+                <td>{{ row.scheme_name }}</td>
+                <td>{{ row.scheme_category }}</td>
+                <td>{{ row.total_applications }}</td>
+                <td class="text-success">{{ row.approved_count }}</td>
+                <td class="text-danger">{{ row.rejected_count }}</td>
+                <td class="text-warning">{{ row.pending_count }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card p-3 shadow-sm">
+    <h5>Applications by State</h5>
+    <table class="table table-sm">
+        <thead><tr><th>State</th><th>Application Count</th></tr></thead>
+        <tbody>
+        {% for state, count in state_rows %}
+            <tr><td>{{ state }}</td><td>{{ count }}</td></tr>
+        {% empty %}
+            <tr><td colspan="2" class="text-muted">No applications yet.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

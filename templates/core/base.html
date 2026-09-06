@@ -61,6 +61,7 @@
                 {% else %}
                     <a class="btn btn-outline-nav btn-sm" href="{% url 'manage_schemes' %}">Manage Schemes</a>
                     <a class="btn btn-outline-nav btn-sm" href="{% url 'application_list' %}">Applications</a>
+                    <a class="btn btn-outline-nav btn-sm" href="{% url 'scheme_analytics' %}">Analytics</a>
                 {% endif %}
                 <span class="mx-2">{{ user.username }} <span class="role-tag">{{ user.role }}</span></span>
                 <form method="post" action="{% url 'logout' %}" class="d-inline">
