@@ -7,7 +7,11 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('signup/', views.signup_view, name='signup'),
     path('', views.dashboard, name='dashboard'),
-
+    path(
+    'applications/<int:application_id>/upload/',
+    views.upload_document,
+    name='upload_document'
+    ),
     path('schemes/', views.scheme_list, name='scheme_list'),
     path('schemes/<int:pk>/', views.scheme_detail, name='scheme_detail'),
     path('schemes/<int:pk>/apply/', views.apply_to_scheme, name='apply_to_scheme'),
@@ -17,4 +21,5 @@ urlpatterns = [
     path('officer/applications/', views.application_list, name='application_list'),
     path('officer/applications/<int:pk>/review/', views.review_application, name='review_application'),
     path('officer/analytics/', views.scheme_analytics, name='scheme_analytics'),
+    
 ]
