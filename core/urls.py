@@ -16,4 +16,5 @@ urlpatterns = [
     path('officer/schemes/<int:scheme_id>/add-criteria/', views.add_criteria, name='add_criteria'),
     path('officer/applications/', views.application_list, name='application_list'),
     path('officer/applications/<int:pk>/review/', views.review_application, name='review_application'),
+    path('officer/analytics/', views.scheme_analytics, name='scheme_analytics'),
 ]
