@@ -68,6 +68,13 @@ DATABASES = {
 
 AUTH_USER_MODEL = 'core.User'
 
+# Password hashing: Argon2 first (per guideline's recommendation), Django's
+# default kept as fallback so any pre-existing hashes still verify correctly.
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+]
+
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 

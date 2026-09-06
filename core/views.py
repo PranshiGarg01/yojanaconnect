@@ -1,7 +1,7 @@
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView
-from django.db import connection, DatabaseError
+from django.db import connection, transaction, DatabaseError
 from django.shortcuts import render, redirect
 from django.contrib import messages
 
