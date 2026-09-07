@@ -2,7 +2,7 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_DB: yojanaconnect_db
+      POSTGRES_DB: YojanaConnect_DB
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
 
@@ -11,11 +11,16 @@ services:
 
     ports:
       - "5433:5432"
+    healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U postgres"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
 
   web:
     build: .
 
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "python manage.py migrate && gunicorn yojanaconnect.wsgi:application --bind 0.0.0.0:8000"
 
     volumes:
       - media_volume:/app/media
@@ -26,14 +31,15 @@ services:
     environment:
       - SECRET_KEY=docker-dev-secret-key-change-in-production
       - DEBUG=True
-      - DB_NAME=yojanaconnect_db
+      - DB_NAME=YojanaConnect_DB
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_HOST=db
       - DB_PORT=5432
 
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:
