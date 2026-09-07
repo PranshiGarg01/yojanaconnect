@@ -15,3 +15,9 @@ A Government Welfare Scheme Eligibility & Application Tracking System
 5. Create a PostgreSQL database named `yojanaconnect_db`
 6. `python manage.py migrate`
 7. `python manage.py runserver`
+
+## Running with Docker
+docker compose up --build
+docker compose exec web python manage.py seed_data
+
+Image also available on Docker Hub: docker pull <your-dockerhub-username>/yojanaconnect:latest
