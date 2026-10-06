@@ -21,16 +21,16 @@ class User(AbstractUser):
 
 
 class CitizenProfile(models.Model):
-    """Extra profile data used for eligibility matching."""
     CATEGORY_CHOICES = [
-        ('general', 'General'),
-        ('obc', 'OBC'),
-        ('sc', 'SC'),
-        ('st', 'ST'),
+        ('general', 'General'), ('obc', 'OBC'), ('sc', 'SC'), ('st', 'ST'),
+    ]
+    GENDER_CHOICES = [
+        ('female', 'Female'), ('male', 'Male'), ('other', 'Other'),
     ]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='citizen_profile')
     income = models.DecimalField(max_digits=12, decimal_places=2, help_text="Annual income in INR")
     age = models.PositiveIntegerField()
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='other')
     category = models.CharField(max_length=10, choices=CATEGORY_CHOICES)
     state = models.CharField(max_length=100)
 
@@ -42,7 +42,6 @@ class CitizenProfile(models.Model):
 
 
 class Scheme(models.Model):
-    """A government welfare scheme."""
     CATEGORY_CHOICES = [
         ('agriculture', 'Agriculture'),
         ('education', 'Education'),
@@ -51,15 +50,27 @@ class Scheme(models.Model):
         ('employment', 'Employment'),
         ('women_child', 'Women & Child Welfare'),
     ]
+    TARGET_DEMOGRAPHIC_CHOICES = [
+        ('general', 'General'),
+        ('student', 'Student'),
+        ('senior_citizen', 'Senior Citizen'),
+        ('girl_child', 'Girl Child'),
+        ('woman', 'Woman'),
+        ('farmer', 'Farmer'),
+        ('disabled', 'Person with Disability'),
+        ('bpl', 'Below Poverty Line'),
+    ]
     name = models.CharField(max_length=200, unique=True)
     description = models.TextField()
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    target_demographic = models.CharField(max_length=20, choices=TARGET_DEMOGRAPHIC_CHOICES, default='general')
     state_applicable = models.CharField(max_length=100, default='All India')
     official_reference_url = models.URLField(blank=True)
+    valid_until = models.DateField(null=True, blank=True, help_text="Leave blank if the scheme has no fixed end date")
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        indexes = [models.Index(fields=['category'])]
+        indexes = [models.Index(fields=['category']), models.Index(fields=['target_demographic'])]
 
     def __str__(self):
         return self.name

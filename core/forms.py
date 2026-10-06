@@ -1,3 +1,4 @@
+import re
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import User, CitizenProfile, Scheme, EligibilityCriteria, Document
@@ -18,8 +19,8 @@ class CitizenSignUpForm(UserCreationForm):
     def clean_income(self):
         """Custom validation beyond min_value — catches obvious typos."""
         income = self.cleaned_data['income']
-        if income > 100_00_00_000:
-            raise forms.ValidationError("That income value looks like a typo — please re-check.")
+        if income > 2_00_00_000:
+            raise forms.ValidationError("That income value seems unrealistic for an individual applicant — please double-check and re-enter.")
         return income
 
     def save(self, commit=True):
@@ -82,19 +83,29 @@ class DocumentUploadForm(forms.ModelForm):
         return file
 
 
-class ApplicationReviewForm(forms.Form):
-    """Officer uses this to approve/reject/reverse — always requires a reason."""
-    ACTION_CHOICES = [
-        ('approved', 'Approve'),
-        ('rejected', 'Reject'),
-        ('pending', 'Revert to Pending (rollback)'),
-    ]
-    action = forms.ChoiceField(choices=ACTION_CHOICES, widget=forms.RadioSelect)
-    reason = forms.CharField(widget=forms.Textarea(attrs={'rows': 2}), required=True,
-                              help_text="Required — recorded in the audit trail.")
+# class ApplicationReviewForm(forms.Form):
+#     """Officer uses this to approve/reject/reverse — always requires a reason."""
+#     ACTION_CHOICES = [
+#         ('approved', 'Approve'),
+#         ('rejected', 'Reject'),
+#         ('pending', 'Revert to Pending (rollback)'),
+#     ]
+#     action = forms.ChoiceField(choices=ACTION_CHOICES, widget=forms.RadioSelect)
+#     reason = forms.CharField(widget=forms.Textarea(attrs={'rows': 2}), required=True,
+#                               help_text="Required — recorded in the audit trail.")
 
-    def clean_reason(self):
-        reason = self.cleaned_data['reason'].strip()
-        if len(reason) < 5:
-            raise forms.ValidationError("Please provide a meaningful reason (at least 5 characters).")
-        return reason
+#     def clean_reason(self):
+#         reason = self.cleaned_data['reason'].strip()
+#         if len(reason) < 5:
+#             raise forms.ValidationError("Please provide a meaningful reason (at least 5 characters).")
+#         return reason
+
+def clean_reason(self):
+    reason = self.cleaned_data['reason'].strip()
+    real_words = re.findall(r'[A-Za-z]{2,}', reason)
+    if len(real_words) < 3:
+        raise forms.ValidationError(
+            "Please provide a legitimate written reason (at least 3 real words) — "
+            "numbers or gibberish aren't acceptable for a permanent audit record."
+        )
+    return reason
