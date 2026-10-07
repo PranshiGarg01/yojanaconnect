@@ -21,5 +21,5 @@ urlpatterns = [
     path('officer/applications/', views.application_list, name='application_list'),
     path('officer/applications/<int:pk>/review/', views.review_application, name='review_application'),
     path('officer/analytics/', views.scheme_analytics, name='scheme_analytics'),
-    
+    path('api/scheme-assistant/', views.scheme_assistant_api, name='scheme_assistant_api'),
 ]

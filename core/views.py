@@ -13,9 +13,12 @@ from .forms import CitizenSignUpForm
 
 from .forms import DocumentUploadForm
 from .models import Document
-
+import json
 import requests
 from django.conf import settings
+from django.views.decorators.http import require_POST
+from django.utils import timezone
+from .models import Scheme, Application, CitizenProfile
 
 def officer_required(view_func):
     """Role-based page access — a citizen hitting an officer URL gets redirected, not shown officer data."""
@@ -317,3 +320,98 @@ def scheme_analytics(request):
         'scheme_rows': scheme_rows, 'state_rows': state_rows,
     })
 
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "llama-3.3-70b-versatile"  # check console.groq.com for current available model names
+
+
+def build_scheme_context():
+    """
+    Builds a compact, factual summary of currently active schemes to GROUND
+    the assistant's answer. This is deliberately passed into the prompt so
+    the model only ever talks about real schemes with real figures from our
+    own database — it cannot invent a scheme name or eligibility number that
+    isn't actually listed here.
+    """
+    schemes = Scheme.objects.filter(is_active=True).filter(
+        models.Q(valid_until__isnull=True) | models.Q(valid_until__gte=timezone.now().date())
+    ).prefetch_related('criteria')
+
+    lines = []
+    for s in schemes:
+        bits = []
+        for c in s.criteria.all():
+            if c.min_income: bits.append(f"min income ₹{c.min_income}")
+            if c.max_income: bits.append(f"max income ₹{c.max_income}")
+            if c.min_age: bits.append(f"min age {c.min_age}")
+            if c.max_age: bits.append(f"max age {c.max_age}")
+            if c.category_required: bits.append(f"category required: {c.category_required}")
+        criteria_text = "; ".join(bits) if bits else "no specific restrictions"
+        lines.append(f"- {s.name} ({s.get_category_display()}, for {s.get_target_demographic_display()}): {s.description} Eligibility: {criteria_text}.")
+    return "\n".join(lines) if lines else "No schemes currently available."
+
+
+@login_required
+@require_POST
+def scheme_assistant_api(request):
+    """
+    AI scheme assistant. Grounds every answer in real DB scheme data, and
+    replies in whatever language the citizen used — no separate translation
+    pipeline needed, since LLMs handle this natively when instructed to.
+    """
+    try:
+        body = json.loads(request.body)
+        user_message = body.get('message', '').strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Invalid request.'}, status=400)
+
+    if not user_message:
+        return JsonResponse({'error': 'Empty message.'}, status=400)
+
+    scheme_context = build_scheme_context()
+
+    profile_context = ""
+    if request.user.is_citizen():
+        try:
+            p = request.user.citizen_profile
+            profile_context = (
+                f"\nThe citizen's own profile: age {p.age}, gender {p.get_gender_display()}, "
+                f"category {p.get_category_display()}, state {p.state}, annual income ₹{p.income}. "
+                f"Use this to personalize your answer where relevant, but remind them to verify "
+                f"final eligibility on the scheme's official page."
+            )
+        except CitizenProfile.DoesNotExist:
+            pass
+
+    system_prompt = (
+        "You are YojanaConnect's scheme assistant, helping Indian citizens find relevant "
+        "government welfare schemes. Only use the scheme data provided below — never invent "
+        "scheme names, income limits, or age limits that aren't listed. If nothing matches the "
+        "citizen's question, say so honestly rather than guessing. Always reply in the SAME "
+        "language the citizen used to ask (Hindi, Tamil, English, or any other language). Keep "
+        "answers short and conversational — 3 to 5 sentences, not a long essay.\n\n"
+        f"Available schemes:\n{scheme_context}"
+        f"{profile_context}"
+    )
+
+    try:
+        response = requests.post(
+            GROQ_API_URL,
+            headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": GROQ_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                "temperature": 0.3,
+                "max_tokens": 400,
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        reply = response.json()['choices'][0]['message']['content']
+        return JsonResponse({'reply': reply})
+    except requests.RequestException:
+        return JsonResponse({'reply': "Sorry, the assistant is temporarily unavailable right now. Please try browsing schemes directly, or try again shortly."})
+    except (KeyError, IndexError):
+        return JsonResponse({'reply': "Sorry, I couldn't process that. Please try rephrasing your question."})
