@@ -4,6 +4,8 @@ from django.contrib.auth.views import LoginView
 from django.db import connection, transaction, DatabaseError
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.db import models
+from django.utils import timezone
 
 from .forms import SchemeForm, EligibilityCriteriaForm, ApplicationReviewForm
 from .models import EligibilityCriteria
@@ -110,22 +112,26 @@ def call_explain_eligibility_gap(citizen_id, scheme_id):
 
 @login_required
 def scheme_list(request):
-    """Search + filter + pagination."""
-    schemes = Scheme.objects.filter(is_active=True)
+    schemes = Scheme.objects.filter(is_active=True).filter(
+        models.Q(valid_until__isnull=True) | models.Q(valid_until__gte=timezone.now().date())
+    )
     query = request.GET.get('q', '').strip()
     category = request.GET.get('category', '').strip()
+    demographic = request.GET.get('demographic', '').strip()
 
     if query:
         schemes = schemes.filter(name__icontains=query)
     if category:
         schemes = schemes.filter(category=category)
+    if demographic:
+        schemes = schemes.filter(target_demographic=demographic)
 
     paginator = Paginator(schemes.order_by('name'), 6)
     page_obj = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'core/scheme_list.html', {
-        'page_obj': page_obj, 'query': query, 'category': category,
-        'categories': Scheme.CATEGORY_CHOICES,
+        'page_obj': page_obj, 'query': query, 'category': category, 'demographic': demographic,
+        'categories': Scheme.CATEGORY_CHOICES, 'demographics': Scheme.TARGET_DEMOGRAPHIC_CHOICES,
     })
 
 

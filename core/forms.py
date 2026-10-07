@@ -9,9 +9,10 @@ class CitizenSignUpForm(UserCreationForm):
     email = forms.EmailField(required=True)
     income = forms.DecimalField(min_value=0, label="Annual income (INR)")
     age = forms.IntegerField(min_value=0, max_value=120)
+    gender = forms.ChoiceField(choices=CitizenProfile.GENDER_CHOICES)
     category = forms.ChoiceField(choices=CitizenProfile.CATEGORY_CHOICES)
     state = forms.CharField(max_length=100)
-
+    ...
     class Meta:
         model = User
         fields = ['username', 'email', 'password1', 'password2']
@@ -31,8 +32,8 @@ class CitizenSignUpForm(UserCreationForm):
             user.save()
             CitizenProfile.objects.create(
                 user=user, income=self.cleaned_data['income'], age=self.cleaned_data['age'],
-                category=self.cleaned_data['category'], state=self.cleaned_data['state'],
-            )
+                gender=self.cleaned_data['gender'], category=self.cleaned_data['category'], state=self.cleaned_data['state'],
+)
         return user
 
 
@@ -83,29 +84,34 @@ class DocumentUploadForm(forms.ModelForm):
         return file
 
 
-# class ApplicationReviewForm(forms.Form):
-#     """Officer uses this to approve/reject/reverse — always requires a reason."""
-#     ACTION_CHOICES = [
-#         ('approved', 'Approve'),
-#         ('rejected', 'Reject'),
-#         ('pending', 'Revert to Pending (rollback)'),
-#     ]
-#     action = forms.ChoiceField(choices=ACTION_CHOICES, widget=forms.RadioSelect)
-#     reason = forms.CharField(widget=forms.Textarea(attrs={'rows': 2}), required=True,
-#                               help_text="Required — recorded in the audit trail.")
+class ApplicationReviewForm(forms.Form):
+    """Officer uses this to approve/reject/reverse — always requires a reason."""
 
-#     def clean_reason(self):
-#         reason = self.cleaned_data['reason'].strip()
-#         if len(reason) < 5:
-#             raise forms.ValidationError("Please provide a meaningful reason (at least 5 characters).")
-#         return reason
+    ACTION_CHOICES = [
+        ('approved', 'Approve'),
+        ('rejected', 'Reject'),
+        ('pending', 'Revert to Pending (rollback)'),
+    ]
 
-def clean_reason(self):
-    reason = self.cleaned_data['reason'].strip()
-    real_words = re.findall(r'[A-Za-z]{2,}', reason)
-    if len(real_words) < 3:
-        raise forms.ValidationError(
-            "Please provide a legitimate written reason (at least 3 real words) — "
-            "numbers or gibberish aren't acceptable for a permanent audit record."
-        )
-    return reason
+    action = forms.ChoiceField(
+        choices=ACTION_CHOICES,
+        widget=forms.RadioSelect
+    )
+
+    reason = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 2}),
+        required=True,
+        help_text="Required — recorded in the audit trail."
+    )
+
+    def clean_reason(self):
+        reason = self.cleaned_data['reason'].strip()
+        real_words = re.findall(r'[A-Za-z]{2,}', reason)
+
+        if len(real_words) < 3:
+            raise forms.ValidationError(
+                "Please provide a legitimate written reason (at least 3 real words) — "
+                "numbers or gibberish aren't acceptable for a permanent audit record."
+            )
+
+        return reason
