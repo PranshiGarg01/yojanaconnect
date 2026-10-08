@@ -1,9 +1,20 @@
+import json
+import requests
+from django.http import JsonResponse
+from django.conf import settings
+from django.views.decorators.http import require_POST
+from django.utils import timezone
+from .models import Scheme, Application, CitizenProfile
+
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView
 from django.db import connection, transaction, DatabaseError
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.db import models
+from django.utils import timezone
+
 from django.db import models
 from django.utils import timezone
 
@@ -321,7 +332,7 @@ def scheme_analytics(request):
     })
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "llama-3.3-70b-versatile"  # check console.groq.com for current available model names
+GROQ_MODEL = "openai/gpt-oss-120b"  # check console.groq.com for current available model names
 
 
 def build_scheme_context():
@@ -404,7 +415,8 @@ def scheme_assistant_api(request):
                     {"role": "user", "content": user_message},
                 ],
                 "temperature": 0.3,
-                "max_tokens": 400,
+                "max_tokens": 1500,
+                "reasoning_effort": "low",
             },
             timeout=10,
         )
