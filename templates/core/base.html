@@ -48,6 +48,113 @@
         }
     </style>
 </head>
+{% if user.is_authenticated %}
+<button id="assistant-toggle" class="btn btn-primary rounded-circle shadow" style="position:fixed;bottom:20px;right:20px;width:60px;height:60px;font-size:1.5rem;z-index:1050;">💬</button>
+<div id="assistant-panel" style="display:none;position:fixed;bottom:90px;right:20px;width:340px;max-height:460px;background:var(--paper-raised);border:1px solid var(--rule);border-radius:4px;box-shadow:4px 4px 0 rgba(28,47,74,0.15);z-index:1050;flex-direction:column;">
+    <div style="padding:0.75rem;border-bottom:2px double var(--navy);display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-family:'Lora',serif;color:var(--navy);">Scheme Assistant</strong>
+        <button id="assistant-close" style="border:none;background:none;font-size:1.1rem;">&times;</button>
+    </div>
+    <div id="assistant-messages" style="flex:1;overflow-y:auto;padding:0.75rem;font-size:0.9rem;max-height:300px;"></div>
+    <div style="padding:0.5rem;border-top:1px solid var(--rule);display:flex;gap:0.35rem;">
+        <input type="text" id="assistant-input" placeholder="Ask in any language...">
+        <button id="assistant-mic" class="btn btn-sm btn-outline-nav" title="Speak your question">🎤</button>
+        <button id="assistant-send" class="btn btn-sm btn-primary">Send</button>
+    </div>
+</div>
+
+<script>
+(function() {
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    const toggleBtn = document.getElementById('assistant-toggle');
+    const panel = document.getElementById('assistant-panel');
+    const closeBtn = document.getElementById('assistant-close');
+    const messages = document.getElementById('assistant-messages');
+    const input = document.getElementById('assistant-input');
+    const sendBtn = document.getElementById('assistant-send');
+    const micBtn = document.getElementById('assistant-mic');
+
+    toggleBtn.addEventListener('click', () => {
+        panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+    });
+    closeBtn.addEventListener('click', () => { panel.style.display = 'none'; });
+
+    function addMessage(text, sender) {
+        const div = document.createElement('div');
+        div.style.margin = '0.4rem 0';
+        div.style.textAlign = sender === 'user' ? 'right' : 'left';
+        const bubble = document.createElement('span');
+        bubble.style.display = 'inline-block';
+        bubble.style.padding = '0.4rem 0.6rem';
+        bubble.style.borderRadius = '4px';
+        bubble.style.maxWidth = '85%';
+        bubble.style.background = sender === 'user' ? 'var(--navy)' : '#eee';
+        bubble.style.color = sender === 'user' ? '#fff' : '#222';
+        bubble.textContent = text;
+        div.appendChild(bubble);
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+        return bubble;
+    }
+
+    function speak(text) {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    }
+
+    async function sendMessage() {
+        const text = input.value.trim();
+        if (!text) return;
+        addMessage(text, 'user');
+        input.value = '';
+        const loadingBubble = addMessage('...', 'assistant');
+
+        try {
+            const res = await fetch("{% url 'scheme_assistant_api' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                body: JSON.stringify({ message: text }),
+            });
+            const data = await res.json();
+            loadingBubble.textContent = data.reply || data.error || 'Something went wrong.';
+            speak(loadingBubble.textContent);
+        } catch (err) {
+            loadingBubble.textContent = 'Connection error — please try again.';
+        }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        micBtn.addEventListener('click', () => {
+            recognition.lang = navigator.language || 'en-IN';
+            recognition.start();
+            micBtn.textContent = '...';
+        });
+        recognition.onresult = (event) => {
+            input.value = event.results[0][0].transcript;
+            micBtn.textContent = '🎤';
+            sendMessage();
+        };
+        recognition.onerror = () => { micBtn.textContent = '🎤'; };
+        recognition.onend = () => { micBtn.textContent = '🎤'; };
+    } else {
+        micBtn.style.display = 'none';
+    }
+})();
+</script>
+{% endif %}
 <body>
 <header class="site-header">
     <nav class="navbar navbar-expand-lg">
