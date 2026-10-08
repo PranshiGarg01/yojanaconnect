@@ -12,6 +12,8 @@ from django.contrib.auth.views import LoginView
 from django.db import connection, transaction, DatabaseError
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.db import models
+from django.utils import timezone
 
 from django.db import models
 from django.utils import timezone
@@ -22,9 +24,12 @@ from .forms import CitizenSignUpForm
 
 from .forms import DocumentUploadForm
 from .models import Document
-
+import json
 import requests
 from django.conf import settings
+from django.views.decorators.http import require_POST
+from django.utils import timezone
+from .models import Scheme, Application, CitizenProfile
 
 def officer_required(view_func):
     """Role-based page access — a citizen hitting an officer URL gets redirected, not shown officer data."""
@@ -327,7 +332,7 @@ def scheme_analytics(request):
     })
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "openai/gpt-oss-120b"  
+GROQ_MODEL = "openai/gpt-oss-120b"  # check console.groq.com for current available model names
 
 
 def build_scheme_context():

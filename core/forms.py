@@ -13,7 +13,7 @@ class CitizenSignUpForm(UserCreationForm):
     gender = forms.ChoiceField(choices=CitizenProfile.GENDER_CHOICES)
     category = forms.ChoiceField(choices=CitizenProfile.CATEGORY_CHOICES)
     state = forms.CharField(max_length=100)
-
+    ...
     class Meta:
         model = User
         fields = ['username', 'email', 'password1', 'password2']
@@ -33,13 +33,9 @@ class CitizenSignUpForm(UserCreationForm):
         if commit:
             user.save()
             CitizenProfile.objects.create(
-                user=user,
-                income=self.cleaned_data['income'],
-                age=self.cleaned_data['age'],
-                gender=self.cleaned_data['gender'],
-                category=self.cleaned_data['category'],
-                state=self.cleaned_data['state'],
-            )
+                user=user, income=self.cleaned_data['income'], age=self.cleaned_data['age'],
+                gender=self.cleaned_data['gender'], category=self.cleaned_data['category'], state=self.cleaned_data['state'],
+)
         return user
 
 
@@ -92,24 +88,33 @@ class DocumentUploadForm(forms.ModelForm):
 
 
 class ApplicationReviewForm(forms.Form):
-    """Officer uses this to approve/reject/reverse. A reason is always required."""
+    """Officer uses this to approve/reject/reverse — always requires a reason."""
+
     ACTION_CHOICES = [
         ('approved', 'Approve'),
         ('rejected', 'Reject'),
         ('pending', 'Revert to Pending (rollback)'),
     ]
-    action = forms.ChoiceField(choices=ACTION_CHOICES, widget=forms.RadioSelect)
+
+    action = forms.ChoiceField(
+        choices=ACTION_CHOICES,
+        widget=forms.RadioSelect
+    )
+
     reason = forms.CharField(
-        widget=forms.Textarea(attrs={'rows': 2}), required=True,
-        help_text="Required. Recorded in the audit trail.",
+        widget=forms.Textarea(attrs={'rows': 2}),
+        required=True,
+        help_text="Required — recorded in the audit trail."
     )
 
     def clean_reason(self):
         reason = self.cleaned_data['reason'].strip()
         real_words = re.findall(r'[A-Za-z]{2,}', reason)
+
         if len(real_words) < 3:
             raise forms.ValidationError(
-                "Please provide a legitimate written reason (at least 3 real words). "
-                "Numbers or gibberish aren't acceptable for a permanent audit record."
+                "Please provide a legitimate written reason (at least 3 real words) — "
+                "numbers or gibberish aren't acceptable for a permanent audit record."
             )
+
         return reason
