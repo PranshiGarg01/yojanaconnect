@@ -9,6 +9,8 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-dev-key-do-not-use-in-prod')
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 
